@@ -17,14 +17,14 @@
 
 ## Overview
 
-[Gemini Robotics-ER](https://ai.google.dev/gemini-api/docs/robotics-overview) is a vision-language model with embodied reasoning (ER) capabilities: spatial understanding, object recognition, and scene interpretation grounded in physical context. Unlike general-purpose vision models, Gemini ER can interpret a camera image in terms of robot-actionable outputs: object locations, pick sequences, and placement targets derived from a natural-language instruction. This eliminates the need for custom-trained object detectors or hand-crafted pick rules (traditionally weeks of data collection and model training) and lets you set up new task plans in minutes by writing a natural-language prompt instead of programming scheduler logic.
+[Gemini Robotics ER](https://ai.google.dev/gemini-api/docs/robotics-overview) is a vision-language model with embodied reasoning (ER) capabilities: spatial understanding, object recognition, and scene interpretation grounded in physical context. Unlike general-purpose vision models, Gemini Robotics ER can interpret a camera image in terms of robot-actionable outputs: object locations, pick sequences, and placement targets derived from a natural-language instruction. This eliminates the need for custom-trained object detectors or hand-crafted pick rules (traditionally weeks of data collection and model training) and lets you set up new task plans in minutes by writing a natural-language prompt instead of programming scheduler logic.
 
 This example uses Gemini Robotics ER for two stages of a pick-and-place loop:
 
 - **Task planning**: The overhead camera image and a natural-language instruction (e.g. *"Place all elbow fittings on the right table"*) are sent to Gemini. Embodied reasoning grounds the instruction spatially: Gemini identifies each relevant object by type, colour, and shape; localises it with a pixel bounding box; infers the intended destination from the workspace context (bin, left table, right table); and returns a pick priority order. The result is a structured JSON plan (pick boxes, drop boxes, pick order) produced without any pre-trained object detector or object template.
 - **Task verification**: After the robot completes its actions, two images are sent to Gemini: the scene before the task started and the current scene. Embodied reasoning is used to compare object positions across both images and determine whether every object specified in the instruction has moved to its correct destination. Gemini returns a pass/fail judgement with a natural-language explanation (e.g. *"Task unsuccessful. The blue tee fitting was not placed."*).
 
-The simulation environment is adapted from the [Intelligent Bin Picking System in Simulink&reg;](https://www.mathworks.com/help/robotics/ug/intelligent-bin-picking-system-in-simulink.html) example (Robotics System Toolbox&trade;). The original example uses a Mask R-CNN object detector and a rule-based task scheduler; this project replaces the detector with Gemini ER and extends the scheduler to accept natural-language task instructions with flexible pick ordering and cross-bin placement.
+The simulation environment is adapted from the [Intelligent Bin Picking System in Simulink&reg;](https://www.mathworks.com/help/robotics/ug/intelligent-bin-picking-system-in-simulink.html) example (Robotics System Toolbox&trade;). The original example uses a Mask R-CNN object detector and a rule-based task scheduler; this project replaces the detector with Gemini Robotics ER and extends the scheduler to accept natural-language task instructions with flexible pick ordering and cross-bin placement.
 
 ![Intelligent Bin Picking with Gemini](images/IntelligentBinPickingGemini.png)
 
@@ -156,7 +156,7 @@ To run scenarios interactively, launch the demo app:
 geminiDemoApp
 ```
 
-![Gemini ER Scenario Runner](images/GeminiERScenarioApp.png)
+![Gemini Robotics ER Scenario Runner](images/GeminiERScenarioApp.png)
 
 The app lets you:
 - Select a **preset scenario** from the dropdown or switch to **Custom** mode and type any natural-language task prompt
@@ -177,14 +177,14 @@ projectshutdown
 
 ## Model Details
 
-### Gemini Robotics-ER Block
+### Gemini Robotics ER Block
 
 The core building block is `geminiERBlock` (`GeminiRobotics.slx`), a MATLAB&reg; System block that handles the Gemini API call, trigger logic, and result caching. Its behaviour is controlled by a `Mode` parameter, which is a `GeminiERBase` subclass instance. Two modes are provided:
 
 - **`GeminiERPlan`**: task planning mode. Takes a camera image and a natural-language task prompt; returns a `geminiPixelDetectionsBus` containing pick bounding boxes, drop bounding boxes, and pick order in pixel coordinates.
 - **`GeminiERVerify`**: verification mode. Holds a before-image (anchored at simulation start) and compares it with the current camera image when triggered; returns a `geminiVerifyResultBus` with a pass/fail flag and a diagnostic string.
 
-![Gemini Robotics-ER Block](images/GeminiERBlock.png)
+![Gemini Robotics ER Block](images/GeminiERBlock.png)
 
 The block and its parameters as configured in `IntelligentBinPickingGemini.slx`:
 
@@ -223,7 +223,7 @@ The Task Scheduler and CHOMP Trajectory Planner are carried over from the origin
 
 ## Limitations
 - Gemini Robotics ER is currently in preview; APIs and capabilities are subject to change.
-- Like other large language models, Gemini ER can hallucinate, producing incorrect detections or placement plans, especially for ambiguous prompts or unfamiliar object types.
+- Like other large language models, Gemini Robotics ER can hallucinate, producing incorrect detections or placement plans, especially for ambiguous prompts or unfamiliar object types.
 - Vague or underspecified task instructions may produce inconsistent detections or incorrect placement assignments. Clear, specific prompts yield the most reliable results.
 - Pixel-level bounding box errors become positional errors in world coordinates, which may cause missed grasps in tightly packed bins.
 - API latency is typically 2-5 s per call (the first call in a session may take longer due to Python process warm-up). The planner fires once per task, not at each simulation step. Mid-task replanning on failure is not yet implemented.
