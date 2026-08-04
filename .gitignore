@@ -1,0 +1,29 @@
+# Generated parameter file (written by initSim3DRobotModelParam, never read)
+generateParam.mat
+
+# MATLAB / Simulink artifacts
+*.slxc
+slprj/
+codegen/
+*.autosave
+*.mex*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Test outputs (generated, not fixtures)
+test/cam1/detections_vis.png
+test/cam2/detections_vis.png
+
+# Secrets
+.env
+
+# IBP example files — fetched locally by projectStartup (MathWorks IP, not committed)
+dependencies/*
+!dependencies/.gitkeep
+!dependencies/python/
+dependencies/python/*
+!dependencies/python/.gitkeep

@@ -1,0 +1,74 @@
+[
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      270,
+      525,
+      339,
+      593
+    ]
+  },
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      285,
+      687,
+      355,
+      756
+    ]
+  },
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      343,
+      605,
+      390,
+      667
+    ]
+  },
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      354,
+      773,
+      422,
+      840
+    ]
+  },
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      360,
+      493,
+      413,
+      543
+    ]
+  },
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      422,
+      458,
+      470,
+      521
+    ]
+  },
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      423,
+      653,
+      489,
+      726
+    ]
+  },
+  {
+    "label": "pipe fitting",
+    "box_2d": [
+      465,
+      726,
+      516,
+      780
+    ]
+  }
+]
