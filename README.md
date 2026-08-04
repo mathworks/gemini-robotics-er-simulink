@@ -12,6 +12,7 @@
 - [Limitations](#limitations)
 - [References](#references)
 - [License](#license)
+- [Feedback](#feedback)
 - [Community Support](#community-support)
 
 ## Overview
@@ -240,6 +241,14 @@ The license is available in the [license.txt](license.txt) file in this GitHub r
 ## Security
 
 To report a security vulnerability, see [SECURITY.md](SECURITY.md).
+
+## Feedback
+
+Tried this example? We'd love your feedback!
+
+Share your experience to help us prioritize what to improve next - takes less than 5 minutes.
+
+Give feedback ➜ [Feedback on Intelligent Bin Picking in Simulink using Gemini Robotics ER](https://www.surveymonkey.com/r/QGZ2NWN)
 
 ## Community Support
 
