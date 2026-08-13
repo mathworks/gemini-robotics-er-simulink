@@ -209,7 +209,7 @@ To adapt the block to a different workspace, subclass `GeminiERBase.m` and overr
 
 When adding a new mode, also extend the bus-type switch in `geminiERBlock.getOutputDataTypeImpl` so Simulink knows which bus to expect at the output port.
 
-For scene-only changes (same task shape, different objects or camera view), no code is needed. Update the **ScenarioPrompt** mask parameter to describe the new workspace and re-run.
+For scene-only changes (same task shape, different objects or camera view), no code is needed. Update the **Scene context** mask parameter to describe the new workspace and re-run.
 
 See `GeminiERPlan.m` and `GeminiERVerify.m` for two worked examples.
 
