@@ -179,41 +179,39 @@ projectshutdown
 
 ### Gemini Robotics ER Block
 
-The core building block is `geminiERBlock` (`GeminiRobotics.slx`), a MATLAB&reg; System block that handles the Gemini API call, trigger logic, and result caching. Its behaviour is controlled by a `Mode` parameter, which is a `GeminiERBase` subclass instance. Two modes are provided:
-
-- **`GeminiERPlan`**: task planning mode. Takes a camera image and a natural-language task prompt; returns a `geminiPixelDetectionsBus` containing pick bounding boxes, drop bounding boxes, and pick order in pixel coordinates.
-- **`GeminiERVerify`**: verification mode. Holds a before-image (anchored at simulation start) and compares it with the current camera image when triggered; returns a `geminiVerifyResultBus` with a pass/fail flag and a diagnostic string.
-
 ![Gemini Robotics ER Block](images/GeminiERBlock.png)
 
-The block and its parameters as configured in `IntelligentBinPickingGemini.slx`:
+`geminiERBlock` (`GeminiRobotics.slx`) is a MATLAB&reg; System block that sends a camera image and a natural-language prompt to Gemini Robotics ER and returns a structured Simulink bus. Task-specific behaviour is selected through the mask's **Mode** parameter.
 
-**Task Planner** (`Mode = GeminiERPlan`)
+This example shows two modes. Both share the same block, differing only in the mode plugged into the **Mode** parameter and in the output bus.
+
+**`GeminiERPlan`** produces a pick-and-place plan from an overhead camera image. Given an image and a task prompt (e.g. *"Place all elbow fittings on the right table"*), it returns pick bounding boxes, drop bounding boxes, and a pick order in pixel coordinates.
 
 ![Task Planner dialog](images/GeminiERPlannerDialog.png)
 
-**Task Verifier** (`Mode = GeminiERVerify`)
+**`GeminiERVerify`** checks whether the robot completed its task. It anchors a before-image at simulation start and, when triggered at task end, sends the before/after pair to Gemini for comparison. Returns a `pass` flag and a short `diagnostics` string.
 
 ![Task Verifier dialog](images/GeminiERVerifierDialog.png)
 
-**`system_instruction`** — assembled once per task
+#### Extending the block
 
-| Layer | Plan | Verify | Source |
-|---|---|---|---|
-| **Common rule** | "Reply ONLY with valid JSON. No markdown fences." | same | Hardcoded, shared — `GeminiERBase.SystemPrompt` |
-| **Role** | "You are guiding a robot arm..." | "You are verifying a robot arm..." | Hardcoded, per mode — `getRole()` in each subclass |
-| **Format schema** | JSON array: `label`, `box_2d`, `drop_box_2d`, `pick_priority` | `{"pass": true/false, "diagnostics": "..."}` | Hardcoded, per mode — `getFormatSchema()` in each subclass |
+To adapt the block to a different workspace, subclass `GeminiERBase.m` and override the parts of the pipeline that change:
 
-**`contents`** — changes on every call
+| Extension point | Purpose |
+|---|---|
+| `getRole()` | Task-specific role sent as part of the `system_instruction`. |
+| `getFormatSchema()` | JSON schema Gemini is asked to return. |
+| `preprocess()` | Optional image transforms (crop, resize) applied before the API call. |
+| `postprocess()` | Parse Gemini's JSON response into the output bus. |
+| `createSimulinkBus()` | Default struct that defines the output bus fields and types. |
+| `updateImages()` | Custom multi-image handling (e.g. anchoring a before-image). |
+| `firesOnFirstStep()` | Whether a call fires automatically at simulation start. |
 
-| Layer | Content | Source |
-|---|---|---|
-| **Scenario** | "The scene is viewed from a camera above the bin. White plastic pipe fittings of four types..." | Configured per deployment — **Scene context** block parameter |
-| **User task** | "Pick the leftmost fitting..." + camera image | Changes per call — `taskPrompt` workspace variable + image input port |
+When adding a new mode, also extend the bus-type switch in `geminiERBlock.getOutputDataTypeImpl` so Simulink knows which bus to expect at the output port.
 
-A new API call fires on the first simulation step (planner only) and on any change of the `trigger` input. Results are cached between calls.
+For scene-only changes (same task shape, different objects or camera view), no code is needed. Update the **ScenarioPrompt** mask parameter to describe the new workspace and re-run.
 
-To adapt the block for a different robot or scene, subclass `GeminiERBase` and override `getRole()`, `getFormatSchema()`, and `postprocess()`.
+See `GeminiERPlan.m` and `GeminiERVerify.m` for two worked examples.
 
 ### Other Blocks
 
