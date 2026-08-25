@@ -37,6 +37,8 @@ Requires MATLAB&reg; R2026a or newer.
 - [Simulink&reg;](https://www.mathworks.com/products/simulink.html)
 - [Stateflow&reg;](https://www.mathworks.com/products/stateflow.html)
 - [Simulink&reg; 3D Animation&trade;](https://www.mathworks.com/products/3d-animation.html)
+- [Optimization Toolbox&trade;](https://www.mathworks.com/products/optimization.html)
+
 
 Requires a host platform C compiler; see [Supported Compilers](https://www.mathworks.com/support/requirements/supported-compilers.html).
 
@@ -119,10 +121,10 @@ sim(modelName);
 
 - Priority + exclusion: cyan crosses first → left table, then green tee and red tee → right table, black and pink fittings stay in bin
 ```matlab
-taskPrompt = "Pick the cyan cross fitting and place them on the left table. " + ...
-             "Then pick the green tee fitting and place it on the right table. " + ...
-             "Then pick the red tee fitting and place it on the right table. " + ...
-             "Leave the black and pink fittings in the bin.";
+taskPrompt =  "Pick the cyan cross fitting and place them on the left table. " + ...
+              "Then pick the green tee fitting and place it on the right table. " + ...
+              "Then pick the blue cross fitting and place it on the right table. " + ...
+              "Leave the remaining fittings in the bin.";
 sim(modelName);
 ```
 ![Priority and exclusion](results/priority.gif)

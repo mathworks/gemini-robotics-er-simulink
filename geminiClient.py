@@ -29,7 +29,7 @@ from google import genai
 from google.genai import types
 
 
-MODEL = "gemini-robotics-er-1.6-preview"
+MODEL = "gemini-robotics-er-2-preview"
 
 
 class GeminiClient:
