@@ -3,5 +3,7 @@
 
 projectRoot = fileparts(mfilename('fullpath'));
 rmpath(fullfile(projectRoot, 'dependencies', 'IntelligentBinPickingExample'));
+rmpath(fullfile(projectRoot, 'images'));
 rmpath(projectRoot);
+Simulink.fileGenControl('reset');
 terminate(pyenv)

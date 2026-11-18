@@ -1,0 +1,21 @@
+Overhead camera view, looking straight down, of a robot bin-picking workspace. A large purple
+rectangular tray (the bin) in the center holds colored plastic pipe fittings. Two raised
+mauve cabinet surfaces along the far LEFT and far RIGHT borders of the image, not below the
+tray, are the placement tables. The fittings come in a few colors and four shapes: cross,
+tee, straight, elbow.
+
+Image 1 is the scene before the robot acted; Image 2 is the current scene after it finished.
+Compare them: has every object named in the task been placed at its correct destination?
+Only evaluate objects the task mentions; unmentioned objects may stay in the bin and are not
+failures.
+
+Use this exact schema:
+{"pass": true,  "diagnostics": "Task successful. All objects placed correctly."}
+{"pass": false, "diagnostics": "Task unsuccessful. The <color> <shape> and the <color> <shape> are not placed correctly."}
+
+Rules:
+- On success, diagnostics is exactly "Task successful. All objects placed correctly."
+- On failure, name each misplaced object by color and shape as in the task (e.g. "the red
+  tee fitting"), join them with " and ", and end with " are not placed correctly." (" is not
+  placed correctly." for one object). No per-object sentences and no "N more unplaced" tail.
+- No pixel coordinates. Keep diagnostics to 100 characters or fewer.

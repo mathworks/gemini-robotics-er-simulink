@@ -15,8 +15,6 @@ __pycache__/
 .venv/
 
 # Test outputs (generated, not fixtures)
-test/cam1/detections_vis.png
-test/cam2/detections_vis.png
 
 # Secrets
 .env
@@ -24,6 +22,17 @@ test/cam2/detections_vis.png
 # IBP example files — fetched locally by projectStartup (MathWorks IP, not committed)
 dependencies/*
 !dependencies/.gitkeep
+!dependencies/IntelligentBinPickingPatches/
 !dependencies/python/
 dependencies/python/*
 !dependencies/python/.gitkeep
+
+CLAUDE.md
+.claude/*
+.mcp.json
+
+# Simulink build cache (projectstartup)
+tmp/
+
+# Local demo-media scripts and outputs (not published)
+.local/

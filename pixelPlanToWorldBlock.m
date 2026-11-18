@@ -1,69 +1,37 @@
 classdef (StrictDefaults) pixelPlanToWorldBlock < matlab.System
-    % pixelPlanToWorldBlock  Project pixel-space Gemini plan to world-frame XYZ.
-    %
-    %   Wraps the detectionsToWorld() function.  Takes the raw pixel detections
-    %   bus output from the Gemini Robotics-ER block (Task = PlanTask) plus the
-    %   depth image, and produces the full geminiTaskPlannerBus with world-frame
-    %   pick and drop positions.
-    %
-    %   The block fires on the first simulation step and on every rising edge of
-    %   trigger (0→1), matching the fire condition of geminiERBlock.  Between
-    %   fires the cached output is returned unchanged — detectionsToWorld() is
-    %   NOT called on every sample step.
-    %
-    %   Inputs:
-    %     detections — struct/bus with fields:
-    %                    count      (1×1 double)
-    %                    boxes      ([MaxDetections×4] double) pick boxes, pixels
-    %                    pick_order ([MaxDetections×1] int32)
-    %                    drop_boxes ([MaxDetections×4] double) drop boxes, pixels
-    %     depth      — double [H x W] depth map in metres (from Sim3D)
-    %     trigger    — uint8 scalar; rising edge (0→1) triggers recomputation.
-    %                  Wire to the same signal as geminiERBlock trigger.
-    %
-    %   Output:
-    %     geminiTaskPlannerBus with fields (see initPlannerGeminiER):
-    %       count, boxes, world_xyz, depth_m, height_m, pick_order,
-    %       drop_box_2d, drop_xyz
-    %
-    %   All robot-base-frame conversions (RobotOffsetZ subtraction) are applied
-    %   here, matching the original plannerGeminiER.buildTaskPlan convention.
-    %
-    %   See also detectionsToWorld, geminiERBlock, PlanTask, initPlannerGeminiER.
+% Project a pixel-space plan to world-frame XYZ via detectionsToWorld, packing geminiTaskPlannerBus.
 
     properties (Nontunable)
-        % Camera focal length in pixels (equal in both axes).
+        % FocalLength - camera focal length in pixels (equal in both axes)
         FocalLength (1,1) double = 750
 
-        % Principal point [cx, cy] in pixels.
+        % PrincipalPoint - principal point [cx, cy] in pixels
         PrincipalPoint (1,2) double = [640, 360]
 
-        % Camera position [x, y, z] in world frame (m).
+        % CameraLoc - camera position [x, y, z] in world frame (m)
         CameraLoc (1,3) double = [0.50, 0, 1.50]
 
-        % Camera orientation as ZYX Euler angles (rad).
+        % CameraRot - camera orientation as ZYX Euler angles (rad)
         CameraRot (1,3) double = [pi/2, pi/2, pi/2]
 
-        % Depth from camera to bin floor (m). Used to estimate object height above floor.
+        % MaxBinDistance - depth camera to bin floor (m), for object height estimate
         MaxBinDistance (1,1) double = 0.95
 
-        % Height above drop surface at which the robot releases the object (m).
+        % DropHeightOffset - height above drop surface at release (m)
         DropHeightOffset (1,1) double = 0.10
 
-        % Z offset of the robot base above the world-frame origin (m).
-        % Subtracted from world_xyz(:,3) and drop_xyz(:,3) to convert to robot
-        % base frame. Must match PoseMaskRCNNModel.RobotOffset(3) = 0.625001.
+        % RobotOffsetZ - robot base Z offset above world origin (m), subtracted for base frame
         RobotOffsetZ (1,1) double = 0.625001
 
-        % Maximum objects per plan. Must match PlanTask.MaxDetections and
-        % initPlannerGeminiER (IBP example hardcodes 8).
+        % MaxDetections - max objects per plan (must match TaskPlanner and initPlannerGeminiER)
         MaxDetections (1,1) double = 8
     end
 
     properties (Access = private)
-        CachedOutput    % last computed geminiTaskPlannerBus; returned between triggers
-        IsFirstStep (1,1) logical = true
-        LastTrigger (1,1) uint8   = 0
+        % CachedOutput - last computed geminiTaskPlannerBus; returned until a fresh plan arrives
+        CachedOutput
+        % LastAttempt - plan attempt last projected (0 = none yet, the planner's idle value)
+        LastAttempt (1,1) double = 0
     end
 
     methods
@@ -73,32 +41,30 @@ classdef (StrictDefaults) pixelPlanToWorldBlock < matlab.System
     end
 
     methods (Access = protected)
-        function setupImpl(obj, ~, ~, ~)
-            obj.IsFirstStep  = true;
-            obj.LastTrigger  = uint8(0);
+        function setupImpl(obj, ~, ~)
+            obj.LastAttempt  = 0;
             obj.CachedOutput = obj.emptyOutput();
         end
 
-        function out = stepImpl(obj, detections, depth, trigger)
-            % Run world projection on the first step or rising edge of trigger.
-            % Return the cached result unchanged between fires.
-            risingEdge = (uint8(trigger) == uint8(1)) && (obj.LastTrigger == uint8(0));
-            obj.LastTrigger = uint8(trigger);
-
-            if obj.IsFirstStep || risingEdge
+        function out = stepImpl(obj, detections, depth)
+        % Run world projection only on a fresh plan (its attempt changed), else return the cached result.
+            % The planner stamps each fire with a new attempt, so this projects
+            % every plan (re-plans included) exactly once, reading the depth
+            % frame at the plan's step.
+            if detections.attempt ~= obj.LastAttempt
                 obj.CachedOutput = obj.computeOutput(detections, depth);
-                obj.IsFirstStep  = false;
+                obj.LastAttempt  = detections.attempt;
             end
 
             out = obj.CachedOutput;
         end
 
         function num = getNumInputsImpl(~)
-            num = 3;
+            num = 2;
         end
 
         function names = getInputNamesImpl(~)
-            names = ["detections", "depth", "trigger"];
+            names = ["detections", "depth"];
         end
 
         function num = getNumOutputsImpl(~)
@@ -131,7 +97,7 @@ classdef (StrictDefaults) pixelPlanToWorldBlock < matlab.System
 
     methods (Access = private)
         function out = computeOutput(obj, detections, depth)
-            % Run detectionsToWorld() for pick and drop boxes and pack the result.
+        % Run detectionsToWorld() for pick and drop boxes and pack the fixed-size result.
             camParams = struct( ...
                 'f',          obj.FocalLength, ...
                 'cx',         obj.PrincipalPoint(1), ...
@@ -142,23 +108,24 @@ classdef (StrictDefaults) pixelPlanToWorldBlock < matlab.System
             count = detections.count;
             Nplan = min(count, obj.MaxDetections);
 
-            % Pick boxes
+            % Pick points -> zero-size boxes [y x y x] so detectionsToWorld reuses
+            % unchanged (it back-projects each box centre).
             pickDets = struct('label', {}, 'box_2d', {});
             for i = 1:Nplan
                 pickDets(i).label  = '';
-                pickDets(i).box_2d = detections.boxes(i, :);
+                pickDets(i).box_2d = obj.pointToBox(detections.pick_center(i, :));
             end
             wr = detectionsToWorld(pickDets, depth, camParams, ...
                 MaxBinDistance=obj.MaxBinDistance);
 
-            % Drop boxes — back-project only where a drop box is present.
+            % Drop points — back-project only where a drop point is present.
             dropDets = struct('label', {}, 'box_2d', {});
             for i = 1:Nplan
                 dropDets(i).label  = '';
-                dropDets(i).box_2d = detections.drop_boxes(i, :);
+                dropDets(i).box_2d = obj.pointToBox(detections.drop_center(i, :));
             end
-            allDropBoxes = detections.drop_boxes(1:Nplan, :);
-            if any(allDropBoxes(:))
+            allDropPoints = detections.drop_center(1:Nplan, :);
+            if any(allDropPoints(:))
                 dropWorld = detectionsToWorld(dropDets, depth, camParams, ...
                     MaxBinDistance=obj.MaxBinDistance);
             else
@@ -180,8 +147,8 @@ classdef (StrictDefaults) pixelPlanToWorldBlock < matlab.System
                 depth_m(i)        = wr(i).depth_m;
                 height_m(i)       = wr(i).height_m;
                 pick_order(i)     = detections.pick_order(i);
-                drop_box_2d(i, :) = detections.drop_boxes(i, :);
-                if any(detections.drop_boxes(i, :))
+                drop_box_2d(i, :) = dropDets(i).box_2d;
+                if any(detections.drop_center(i, :))
                     drop_xyz(i, :) = [dropWorld(i).world_xyz(1:2), ...
                                       dropWorld(i).world_xyz(3) + obj.DropHeightOffset];
                 end
@@ -189,13 +156,14 @@ classdef (StrictDefaults) pixelPlanToWorldBlock < matlab.System
 
             % Convert world-frame Z to robot base frame.
             % Apply to pick positions always; apply to drop positions only where
-            % Gemini returned a drop box — zero rows stay zero so the Task
+            % the plan returned a drop point — zero rows stay zero so the Task
             % Scheduler's getDroppingPose fallback works correctly.
             world_xyz(:, 3) = world_xyz(:, 3) - obj.RobotOffsetZ;
             nonZeroDrop = any(drop_xyz, 2);
             drop_xyz(nonZeroDrop, 3) = drop_xyz(nonZeroDrop, 3) - obj.RobotOffsetZ;
 
             out = struct( ...
+                'attempt',     detections.attempt, ...
                 'count',       Nplan, ...
                 'boxes',       boxes, ...
                 'world_xyz',   world_xyz, ...
@@ -206,9 +174,18 @@ classdef (StrictDefaults) pixelPlanToWorldBlock < matlab.System
                 'drop_xyz',    drop_xyz);
         end
 
+        function box = pointToBox(~, point)
+        % Convert a pixel [x y] point to a zero-size box [y_min x_min y_max x_max].
+            % detectionsToWorld's centre (u=(x_min+x_max)/2, v=(y_min+y_max)/2)
+            % recovers the point exactly. A zero point stays a zero box.
+            box = [point(2), point(1), point(2), point(1)];
+        end
+
         function out = emptyOutput(obj)
+        % Build a zero-valued geminiTaskPlannerBus struct.
             N   = obj.MaxDetections;
             out = struct( ...
+                'attempt',     0, ...
                 'count',       0, ...
                 'boxes',       zeros(N, 4), ...
                 'world_xyz',   zeros(N, 3), ...

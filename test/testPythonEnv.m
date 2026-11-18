@@ -10,8 +10,13 @@ classdef testPythonEnv < matlab.unittest.TestCase
 
     methods (TestClassSetup)
         function setupPythonEnvironment(testCase)
-            projectstartup;
-            penv = pyenv;
+            % Configure the bundled interpreter via the shared helper (no projectstartup,
+            % which also needs the IBP example on the path); the helper lives in the repo root.
+            import matlab.unittest.fixtures.PathFixture
+            projectRoot = fileparts(fileparts(mfilename('fullpath')));
+            testCase.applyFixture(PathFixture(projectRoot));
+
+            penv = initPythonEnvironment;
             testCase.addTeardown(@() terminate(penv))
 
             pythonVersion = string(penv.Version);
@@ -43,11 +48,26 @@ classdef testPythonEnv < matlab.unittest.TestCase
         end
 
         function verifyGeminiClientInstantiable(testCase)
-            % Verify GeminiClient can be instantiated with a dummy key
+            % Verify GeminiClient can be instantiated with a dummy key in the Python environment
+            environ = py.os.environ;
+            oldKey = environ.pop('GEMINI_API_KEY', py.None);
+            environ.update(py.dict(pyargs('GEMINI_API_KEY', 'dummy-key')));
+            testCase.addTeardown(@() testPythonEnv.restoreEnv(environ, 'GEMINI_API_KEY', oldKey));
             module = py.importlib.import_module('geminiClient');
             testCase.verifyWarningFree( ...
-                @() module.GeminiClient('dummy-key'), ...
+                @() module.GeminiClient(), ...
                 'GeminiClient constructor raised a warning');
+        end
+    end
+
+    methods (Static, Access = private)
+        function restoreEnv(environ, name, oldValue)
+            % Put back (or remove) a Python environment variable changed by a test.
+            if isa(oldValue, 'py.NoneType')
+                environ.pop(name, py.None);
+            else
+                environ.update(py.dict(pyargs(name, oldValue)));
+            end
         end
     end
 end

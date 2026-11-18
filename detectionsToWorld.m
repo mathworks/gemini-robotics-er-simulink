@@ -19,9 +19,8 @@ function results = detectionsToWorld(detections, depthM, camParams, options)
 %
 %   Optional name-value:
 %     maxBinDistance - depth (m) from camera to bin floor, used only for
-%                     height_m computation. Default 0.6 matches cam1
-%                     (camera_loc=[0.48,0,1.15]) and maxBinDistance in
-%                     PoseMaskRCNN. Use 0.95 for cam2 (camera_loc=[0.5,0,1.5]).
+%                     height_m computation. Default 0.95 matches the cam2
+%                     camera (camera_loc=[0.5,0,1.5]) set in robotSimParams.
 %     outJson       - file path to save results as JSON (default: skip)
 %
 %   Output:
@@ -32,7 +31,7 @@ arguments
     detections  struct
     depthM      (:,:) double
     camParams   struct
-    options.maxBinDistance (1,1) double = 0.6
+    options.maxBinDistance (1,1) double = 0.95
     options.outJson string = ""
 end
 

@@ -4,6 +4,7 @@
 
 projectRoot = fileparts(mfilename('fullpath'));
 addpath(projectRoot);
+addpath(fullfile(projectRoot, 'images'));   % block mask icons (RobotReasoner.svg)
 
 % Add IBP dependency path (must already exist)
 ibpPath = fullfile(projectRoot, 'dependencies', 'IntelligentBinPickingExample');
@@ -13,23 +14,17 @@ if ~isfolder(ibpPath)
 end
 addpath(ibpPath);
 
+% Per-release Simulink build cache under tmp/, so build artifacts (CHOMP cgxe MEX,
+% slxc, slprj) stay out of the repo root and one release never loads another's.
+buildDir = fullfile(projectRoot, 'tmp', sprintf('r%sCache', version('-release')));
+Simulink.fileGenControl('set', 'CacheFolder', buildDir, 'CodeGenFolder', buildDir, ...
+    'createDir', true);
+if ispc && ~isempty(getenv('NoDefaultCurrentDirectoryInExePath'))
+    setenv('NoDefaultCurrentDirectoryInExePath', '');
+end
+
 % Configure Python environment
-arch = computer('arch');
-installLocation = fullfile(projectRoot, 'dependencies', 'python', arch);
-if ispc
-    pyInterpreter = fullfile(installLocation, "python", "python.exe");
-else
-    pyInterpreter = fullfile(installLocation, "python", "bin", "python3.13");
-end
-if ~isfile(pyInterpreter)
-    error('gemini:missingPython', ...
-        'Python interpreter not found at:\n  %s\nRun installPythonEnv first.', pyInterpreter);
-end
-terminate(pyenv);
-penv = pyenv(Version=pyInterpreter, ExecutionMode="OutOfProcess");
-if count(py.sys.path, projectRoot) == 0
-    insert(py.sys.path, int64(0), projectRoot);
-end
+penv = initPythonEnvironment;
 disp('Python environment:')
 disp(penv)
 

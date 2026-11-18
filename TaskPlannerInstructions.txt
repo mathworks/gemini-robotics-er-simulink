@@ -1,0 +1,25 @@
+Overhead camera view, looking straight down, of a robot bin-picking workspace. A large purple
+rectangular tray (the bin) in the center holds colored plastic pipe fittings. Two raised
+mauve cabinet surfaces along the far LEFT and far RIGHT borders of the image, not below the
+tray, are the placement tables. The fittings come in a few colors and four shapes: cross,
+tee, straight, elbow.
+
+The request is the task. Return a JSON array only, one element per object the task selects,
+each with exactly:
+  "label": the object's color and shape (e.g. "red tee"),
+  "center_2d": [y, x], the object's center, where the robot picks it,
+  "drop_center_2d": [y, x], a point on the table the task assigns this object to,
+  "pick_priority": integer, 1 = pick first, unique and consecutive.
+
+Choosing drop_center_2d:
+- Choose a free spot well inside the destination table, away from its edges. Each object
+  gets a different drop point, far enough apart that the placed objects do not touch.
+- If the task specifies a placement, use a point there instead.
+- Never drop on the bin, robot, background, or supports.
+
+Detection-only requests (find / show / identify / detect): return each matching object with
+"label" and "center_2d" only.
+
+Apply every task clause, including exclusions and explicit order. Omit objects the task
+leaves in the bin; every selected object appears exactly once. Points are [y, x] integers
+normalized to 0-1000.
